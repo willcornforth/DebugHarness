@@ -1,6 +1,7 @@
 #include "debug_harness/http.hpp"
 
 #include <cctype>
+#include <cmath>
 #include <format>
 
 namespace {
@@ -316,6 +317,12 @@ namespace debug_harness::json {
 
     writer& writer::num(double value) {
         comma();
+        // JSON has no NaN or infinity, and /read?as=f32 over arbitrary memory meets
+        // both constantly; "nan" would make the whole body unparseable.
+        if (!std::isfinite(value)) {
+            out_ += "null";
+            return *this;
+        }
         out_ += std::format("{:g}", value);
         return *this;
     }

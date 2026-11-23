@@ -58,7 +58,7 @@ namespace debug_harness::json {
         writer& boolean(bool value);
         writer& u64(uint64_t value);
         writer& i64(int64_t value);
-        writer& num(double value);
+        writer& num(double value); // NaN and infinities are written as null
         writer& hex(uint64_t value); // written as a "0x..." string
         writer& str(const std::string& value);
         writer& null();

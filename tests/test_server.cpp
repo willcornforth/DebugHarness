@@ -123,6 +123,40 @@ TEST(server_serves_ping_over_loopback) {
     CHECK(http_get(port, "/ping").empty());
 }
 
+TEST(server_idle_client_cannot_wedge_the_server) {
+    // Regression: connections are served one at a time with a blocking recv, so a
+    // client that connected and never sent anything blocked every later request (and
+    // stop(), which joins the server thread) indefinitely. The per-connection I/O
+    // timeout bounds it: the next request is served once the idle one times out.
+    server_guard guard;
+    debug_harness::configure({});
+    std::string error;
+    CHECK(debug_harness::start(0, error));
+    const unsigned short port = debug_harness::port();
+
+    WSADATA data = {};
+    CHECK(WSAStartup(MAKEWORD(2, 2), &data) == 0);
+    const SOCKET idle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    sockaddr_in address = {};
+    address.sin_family = AF_INET;
+    address.sin_port = htons(port);
+    inet_pton(AF_INET, "127.0.0.1", &address.sin_addr);
+    CHECK(connect(idle, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0);
+    std::this_thread::sleep_for(std::chrono::milliseconds(100)); // let the server accept it
+
+    const auto started = GetTickCount64();
+    const auto response = http_get(port, "/ping"); // the helper gives up after 5 s
+    const auto waited = GetTickCount64() - started;
+
+    closesocket(idle);
+    WSACleanup();
+
+    CHECK(contains(response, "HTTP/1.0 200"));
+    CHECK(waited < 5000);
+    debug_harness::stop();
+    CHECK(!debug_harness::running());
+}
+
 TEST(server_start_twice_is_refused) {
     server_guard guard;
     std::string error;

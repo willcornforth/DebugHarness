@@ -21,7 +21,8 @@ backend, no D3D device, no window and no hooks. Those belong to the consumer.
 ## Safety model
 
 - Every read goes through `mem::safe_read*`: `VirtualQuery` validation, then the copy under
-  SEH. A wrong offset is a structured failure, never a crash. No code path bypasses it.
+  SEH. A wrong offset is a structured failure, never a crash. The signature scanner, which
+  reads whole module images, validates every region first and skips unreadable pages.
 - The server binds `127.0.0.1` only, and nothing listens until the consumer calls `start()`.
 - Writes need `mem::arm_writes`, which is **never reachable over HTTP**: only in-process UI
   can arm. The arm expires on its own (default 5 minutes). Every write records its original

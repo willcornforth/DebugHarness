@@ -52,6 +52,8 @@ namespace debug_harness::scan {
     bool parse_pattern(const char* pattern, std::vector<pattern_byte>& out);
 
     // Scan [base, base+size) for the first occurrence. Returns 0 on failure.
+    // Both range scanners walk the range with mem::query first and only read committed,
+    // readable runs: unreadable pages are skipped, and no match spans one.
     uintptr_t find_pattern(uintptr_t base, size_t size, const char* pattern);
 
     // Base and SizeOfImage of the configured module (host_config::module_name, nullptr =

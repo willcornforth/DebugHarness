@@ -22,6 +22,10 @@ namespace {
 
     constexpr size_t max_request_bytes = 64 * 1024;
     constexpr int accept_timeout_ms = 200; // how often the accept loop checks `stopping`
+    // Per-connection recv/send bound. Connections are served one at a time, so without
+    // it a client that connects and never sends (or never reads) would wedge the server
+    // for every later request, and stop() -- which joins this thread -- would hang.
+    constexpr DWORD client_io_timeout_ms = 2000;
 
     // One posted job. Shared between the waiting caller and the queue, so neither side
     // can outlive the other's view of it.
@@ -146,6 +150,11 @@ namespace {
             int from_length = sizeof(from);
             const SOCKET client = accept(server.listener, reinterpret_cast<sockaddr*>(&from), &from_length);
             if (client == INVALID_SOCKET) continue;
+
+            setsockopt(client, SOL_SOCKET, SO_RCVTIMEO, reinterpret_cast<const char*>(&client_io_timeout_ms),
+                       sizeof(client_io_timeout_ms));
+            setsockopt(client, SOL_SOCKET, SO_SNDTIMEO, reinterpret_cast<const char*>(&client_io_timeout_ms),
+                       sizeof(client_io_timeout_ms));
 
             // One connection at a time, on purpose: it removes every race from the
             // harness itself, and a debug tool has exactly one user.

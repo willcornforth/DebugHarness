@@ -1,5 +1,7 @@
 #include "harness.hpp"
 
+#include <limits>
+
 #include "debug_harness/http.hpp"
 
 #include <string>
@@ -172,6 +174,18 @@ TEST(json_writer_emits_null_and_numbers) {
     debug_harness::json::writer writer;
     writer.begin_object().key("a").null().key("b").num(1.5).key("c").i64(-7).end_object();
     CHECK_STR_EQ(writer.take(), "{\"a\":null,\"b\":1.5,\"c\":-7}");
+}
+
+TEST(json_writer_writes_non_finite_numbers_as_null) {
+    // Regression: "{:g}" of NaN is "nan", which is not JSON; /read?as=f32 hits it often.
+    debug_harness::json::writer writer;
+    writer.begin_object()
+        .key("nan").num(std::numeric_limits<double>::quiet_NaN())
+        .key("inf").num(std::numeric_limits<double>::infinity())
+        .key("ninf").num(-std::numeric_limits<double>::infinity())
+        .key("ok").num(2.0)
+        .end_object();
+    CHECK_STR_EQ(writer.take(), "{\"nan\":null,\"inf\":null,\"ninf\":null,\"ok\":2}");
 }
 
 TEST(json_writer_emits_an_empty_object_and_array) {

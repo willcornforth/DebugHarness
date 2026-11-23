@@ -2,6 +2,8 @@
 
 #include "debug_harness/scan.hpp"
 
+#include <Windows.h>
+
 #include <cstdint>
 #include <vector>
 
@@ -96,4 +98,37 @@ TEST(module_range_describes_the_test_executable) {
     CHECK(debug_harness::scan::module_range(base, size));
     CHECK(base != 0);
     CHECK(size > 0x1000);
+}
+
+TEST(scan_skips_unreadable_pages_inside_the_range) {
+    // Regression: the range scanners used to read every byte of [base, base+size) raw,
+    // so a PAGE_NOACCESS page inside the range (a protected image, or a range typed
+    // over HTTP) faulted the scanning thread. They must skip it and keep going.
+    SYSTEM_INFO system = {};
+    GetSystemInfo(&system);
+    const size_t page = system.dwPageSize;
+
+    auto* const memory = static_cast<uint8_t*>(VirtualAlloc(nullptr, page * 3, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE));
+    CHECK(memory != nullptr);
+    memory[16] = 0xC3;
+    memory[17] = 0x5A;
+    memory[page * 2 + 32] = 0xC3;
+    memory[page * 2 + 33] = 0x5A;
+    DWORD previous = 0;
+    CHECK(VirtualProtect(memory + page, page, PAGE_NOACCESS, &previous));
+
+    const auto base = reinterpret_cast<uintptr_t>(memory);
+    const auto all = debug_harness::scan::find_all(base, page * 3, "C3 5A", 8);
+    CHECK(all.pattern_valid);
+    CHECK_EQ(all.total_hits, 2u);
+    CHECK_EQ(all.hits.size(), 2u);
+    CHECK_EQ(all.hits[0], base + 16);
+    CHECK_EQ(all.hits[1], base + page * 2 + 32);
+
+    // Starting inside the unreadable page still finds the match after it.
+    CHECK_EQ(debug_harness::scan::find_pattern(base + page, page * 2, "C3 5A"), base + page * 2 + 32);
+    // A range that is nothing but the unreadable page finds nothing, without faulting.
+    CHECK_EQ(debug_harness::scan::find_pattern(base + page, page, "?"), 0u);
+
+    VirtualFree(memory, 0, MEM_RELEASE);
 }
