@@ -8,6 +8,9 @@ add_executable(debug_harness_tests
     test_debugmem.cpp
     test_sigscanner.cpp
     test_host.cpp
+    test_routes.cpp
+    test_server.cpp
+    test_ui.cpp
 )
 # The host tests reach the internal seams (route registry) directly.
 target_include_directories(debug_harness_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${PROJECT_SOURCE_DIR}/src)
