@@ -51,7 +51,6 @@ imgui/             OPTIONAL ImGui renderer over ui.hpp -- not part of the librar
 tests/             host tests (small built-in framework), one CTest entry
 tools/mem.ps1      PowerShell client for the HTTP endpoints; tools/smoke.ps1 smoke test
 examples/consumer/ minimal consumer DLL (not built by default)
-docs/DESIGN.md     the design contract
 docs/AGENT_GUIDE.md how agents and scripts should drive a running server
 ```
 
@@ -244,5 +243,4 @@ Plus whatever the host adds with `register_route`.
 
 snake_case throughout, in the style of the standard library: types, functions, variables
 and enum values are all `snake_case`; private members carry a trailing underscore;
-constants have no `k` prefix; macros are `UPPER_SNAKE`. Win32 names stay as they are. See
-"Coding style" in `docs/DESIGN.md`.
+constants have no `k` prefix; macros are `UPPER_SNAKE`. Win32 names stay as they are.
