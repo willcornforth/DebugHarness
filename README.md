@@ -52,6 +52,7 @@ tests/             host tests (small built-in framework), one CTest entry
 tools/mem.ps1      PowerShell client for the HTTP endpoints; tools/smoke.ps1 smoke test
 examples/consumer/ minimal consumer DLL (not built by default)
 docs/DESIGN.md     the design contract
+docs/AGENT_GUIDE.md how agents and scripts should drive a running server
 ```
 
 ## Build and test
@@ -199,7 +200,7 @@ See `examples/consumer/consumer_dll.cpp` for all of the above in one file.
 
 ## HTTP endpoints
 
-All `GET` unless noted; every body is JSON. Default port 27015.
+All `GET` unless noted; every body is JSON. Default port 27015. If you are an agent or are scripting against the server, read [docs/AGENT_GUIDE.md](docs/AGENT_GUIDE.md) first. It covers URL-encoding (a bare `+` decodes to a space), the write rules and recipes.
 
 | Path | Parameters | Returns |
 |---|---|---|
